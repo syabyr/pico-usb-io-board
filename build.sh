@@ -11,4 +11,4 @@ if [ ! -e "$PICO_SDK_DIR/.git" ]; then
 fi
 
 cmake -B $BUILD_DIR -S $BASE_DIR
-make -C $BUILD_DIR -j$(nproc)
+make -C $BUILD_DIR -j8

@@ -150,7 +150,7 @@ static bool dln2_gpio_pin_enable(struct dln2_slot *slot, bool enable)
         if (res)
             return dln2_response_error(slot, res);
 
-        enum gpio_function fn = gpio_get_function(pin);
+        gpio_function_t fn = gpio_get_function(pin);
         LOG1("    gpio_get_function=%u\n", fn);
 
         if (pin != LED_PIN) {
