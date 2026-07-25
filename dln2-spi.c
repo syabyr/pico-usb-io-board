@@ -97,8 +97,10 @@ static bool dln2_spi_enable(struct dln2_slot *slot, bool enable)
         uint freq = spi_init(spi_default, dln2_spi_config.freq);
         LOG1("SPI: actual frequency: %uHz\n", freq);
 
-        spi_set_format(spi_default, dln2_spi_config.bpw, dln2_spi_config.mode & DLN2_SPI_CPOL,
-                       dln2_spi_config.mode & DLN2_SPI_CPHA, SPI_MSB_FIRST);
+        spi_set_format(spi_default, dln2_spi_config.bpw,
+                       (dln2_spi_config.mode & DLN2_SPI_CPOL) ? SPI_CPOL_1 : SPI_CPOL_0,
+                       (dln2_spi_config.mode & DLN2_SPI_CPHA) ? SPI_CPHA_1 : SPI_CPHA_0,
+                       SPI_MSB_FIRST);
 
         gpio_set_function(sck, GPIO_FUNC_SPI);
         gpio_set_function(mosi, GPIO_FUNC_SPI);
@@ -264,7 +266,6 @@ static bool dln2_spi_read_write(struct dln2_slot *slot)
     // The buffer addresses are 32-bit aligned and can be used directly.
     // It looks like txbuf can move ahead 8 bytes on rxbuf so we can't use buf directly
     spi_write_read_blocking(spi_default, cmd->buf, dln2_spi_tmp_buf, tx_len);
-
     if (!(attr & DLN2_SPI_ATTR_LEAVE_SS_LOW))
         dln2_spi_cs_active(false);
 
