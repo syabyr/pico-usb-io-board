@@ -59,6 +59,8 @@ static bool dln2_i2c_enable(struct dln2_slot *slot, bool enable)
         i2c_init(i2c_default, 100 * 1000);
         gpio_set_function(scl, GPIO_FUNC_I2C);
         gpio_set_function(sda, GPIO_FUNC_I2C);
+        gpio_pull_up(scl);
+        gpio_pull_up(sda);
     } else {
         res = dln2_pin_free(sda, DLN2_MODULE_I2C);
         if (res)
