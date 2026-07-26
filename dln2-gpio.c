@@ -185,7 +185,9 @@ static bool dln2_gpio_pin_set_event_cfg(struct dln2_slot *slot)
     if (cmd->period)
         return dln2_response_error(slot, DLN2_RES_INVALID_EVENT_PERIOD);
 
-    if (cmd->pin == LED_PIN)
+    /* Reject event configuration on output-only / reserved pins. */
+    if (cmd->pin == LED_PIN || cmd->pin == 23 ||
+        cmd->pin == 24 || cmd->pin == 29)
         return dln2_response_error(slot, DLN2_RES_INVALID_VALUE);
 
     assign_bit(cmd->pin, prev_values, gpio_get(cmd->pin));
@@ -249,7 +251,10 @@ bool dln2_handle_gpio(struct dln2_slot *slot)
         return dln2_gpio_pin_enable(slot, false);
     case DLN2_GPIO_PIN_SET_DIRECTION:
         DLN2_GPIO_GET_PIN_VERIFY(slot, pin, &val);
-        if (pin == LED_PIN && !val)
+        /* Pins reserved for hardware functions can only be outputs:
+         *  25 = on-board LED, 23 = SMPS power-save, 24 = VBUS sense,
+         *  29 = ADC3 (VSYS/3).  Reject attempts to set them as input. */
+        if (!val && (pin == LED_PIN || pin == 23 || pin == 24 || pin == 29))
             return dln2_response_error(slot, DLN2_RES_INVALID_VALUE);
         gpio_set_dir(pin, val);
         return dln2_gpio_response_pin_val(slot, pin, NULL);

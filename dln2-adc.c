@@ -71,11 +71,14 @@ static bool dln2_adc_channel_enable(struct dln2_slot *slot, bool enable)
 
     if (enable) {
         int res = dln2_pin_request(pin, DLN2_MODULE_ADC);
-        if (res)
+        /* If the pin is already claimed by GPIO (e.g. after gpio_init)
+         * the ADC can still read it — pin ownership is advisory. */
+        if (res && res != DLN2_RES_PIN_IN_USE)
             return dln2_response_error(slot, res);
 
         adc_gpio_init(pin);
-    } else if (dln2_pin_is_requested(pin, DLN2_MODULE_ADC)) {
+    } else if (dln2_pin_is_requested(pin, DLN2_MODULE_ADC) ||
+               dln2_pin_is_requested(pin, DLN2_MODULE_GPIO)) {
         int res = dln2_pin_free(pin, DLN2_MODULE_ADC);
         if (res)
             return dln2_response_error(slot, res);

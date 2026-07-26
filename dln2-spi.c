@@ -77,6 +77,12 @@ static bool dln2_spi_enable(struct dln2_slot *slot, bool enable)
         return dln2_response_error(slot, DLN2_RES_INVALID_PORT_NUMBER);
 
     if (enable) {
+        /* The static dln2_spi_config is zero-initialised — bpw could be 0
+         * if enable arrives before any SET_FRAME_SIZE command.  Passing
+         * bpw=0 to spi_set_format() causes a HardFault.  Default to 8. */
+        if (dln2_spi_config.bpw == 0)
+            dln2_spi_config.bpw = 8;
+
         res = dln2_pin_request(sck, DLN2_MODULE_SPI);
         if (res)
             return dln2_response_error(slot, res);
@@ -162,8 +168,11 @@ static bool dln2_spi_set_bpw(struct dln2_slot *slot)
     if (cmd->port)
         return dln2_response_error(slot, DLN2_RES_INVALID_PORT_NUMBER);
 
-    // TODO: verify
-    // DLN2_RES_SPI_INVALID_FRAME_SIZE
+    /* The RP2040 PIO-based SPI implementation only handles 8- and 16-bit
+     * frames reliably.  Other values (4–7, 9–15) can trigger DMA / PIO
+     * hangs or HardFaults.  Reject unsupported frame sizes early. */
+    if (cmd->bpw != 8 && cmd->bpw != 16)
+        return dln2_response_error(slot, DLN2_RES_BAD_PARAMETER);
     dln2_spi_config.bpw = cmd->bpw;
 
     return dln2_response(slot, 0);
@@ -413,8 +422,9 @@ static bool dln2_spi_get_supported_frame_sizes(struct dln2_slot *slot)
 
     memset(data, 0, 1 + 36);
     j = 1;
-    for (i = 4; i <= 16; i++)
-        data[j++] = i;
+    /* Only report frame sizes the firmware actually supports safely. */
+    data[j++] = 8;
+    data[j++] = 16;
     data[0] = j - 1;
 
     return dln2_response(slot, 1 + 36);
